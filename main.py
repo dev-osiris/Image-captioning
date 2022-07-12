@@ -2,16 +2,6 @@
 import sys
 sys.path.append("..")
 import grading
-import download_utils
-
-
-# In[2]:
-
-
-download_utils.link_all_keras_resources()
-
-
-# In[3]:
 
 
 import tensorflow as tf
@@ -29,23 +19,9 @@ from collections import defaultdict
 import re
 import random
 from random import choice
-import grading_utils
 import os
 from keras_utils import reset_tf_session
-import tqdm_utils
 
-
-# # Fill in your Coursera token and email
-# To successfully submit your answers to our grader, please fill in your Coursera submission token and email
-
-# In[4]:
-
-
-grader = grading.Grader(assignment_key="NEDBg6CgEee8nQ6uE8a7OA", 
-                        all_parts=["19Wpv", "uJh73", "yiJkt", "rbpnH", "E2OIL", "YJR7z"])
-
-
-# In[ ]:
 
 
 # token expires every 30 min
@@ -53,35 +29,9 @@ COURSERA_TOKEN = ### YOUR TOKEN HERE
 COURSERA_EMAIL = ### YOUR EMAIL HERE
 
 
-# # Download data
-# 
-# Takes 10 hours and 20 GB. We've downloaded necessary files for you.
-# 
-# Relevant links (just in case):
-# - train images http://msvocds.blob.core.windows.net/coco2014/train2014.zip
-# - validation images http://msvocds.blob.core.windows.net/coco2014/val2014.zip
-# - captions for both train and validation http://msvocds.blob.core.windows.net/annotations-1-0-3/captions_train-val2014.zip
-
-# In[5]:
-
-
-# we downloaded them for you, just link them here
-download_utils.link_week_6_resources()
-
-
-# # Extract image features
-# 
-# We will use pre-trained InceptionV3 model for CNN encoder (https://research.googleblog.com/2016/03/train-your-own-image-classifier-with.html) and extract its last hidden layer as an embedding:
-# 
-# <img src="images/inceptionv3.png" style="width:70%">
-
-# In[6]:
-
+# Extract image features
 
 IMG_SIZE = 299
-
-
-# In[7]:
 
 
 # we take the last hidden layer of IncetionV3 as an image embedding
@@ -94,42 +44,32 @@ def get_cnn_encoder():
     return model, preprocess_for_model
 
 
-# Features extraction takes too much time on CPU:
-# - Takes 16 minutes on GPU.
-# - 25x slower (InceptionV3) on CPU and takes 7 hours.
-# - 10x slower (MobileNet) on CPU and takes 3 hours.
-# 
-# So we've done it for you with the following code:
-# ```python
-# # load pre-trained model
-# reset_tf_session()
-# encoder, preprocess_for_model = get_cnn_encoder()
-# 
-# # extract train features
-# train_img_embeds, train_img_fns = utils.apply_model(
-#     "train2014.zip", encoder, preprocess_for_model, input_shape=(IMG_SIZE, IMG_SIZE))
-# utils.save_pickle(train_img_embeds, "train_img_embeds.pickle")
-# utils.save_pickle(train_img_fns, "train_img_fns.pickle")
-# 
-# # extract validation features
-# val_img_embeds, val_img_fns = utils.apply_model(
-#     "val2014.zip", encoder, preprocess_for_model, input_shape=(IMG_SIZE, IMG_SIZE))
-# utils.save_pickle(val_img_embeds, "val_img_embeds.pickle")
-# utils.save_pickle(val_img_fns, "val_img_fns.pickle")
-# 
-# # sample images for learners
-# def sample_zip(fn_in, fn_out, rate=0.01, seed=42):
-#     np.random.seed(seed)
-#     with zipfile.ZipFile(fn_in) as fin, zipfile.ZipFile(fn_out, "w") as fout:
-#         sampled = filter(lambda _: np.random.rand() < rate, fin.filelist)
-#         for zInfo in sampled:
-#             fout.writestr(zInfo, fin.read(zInfo))
-#             
-# sample_zip("train2014.zip", "train2014_sample.zip")
-# sample_zip("val2014.zip", "val2014_sample.zip")
-# ```
+# load pre-trained model
+reset_tf_session()
+encoder, preprocess_for_model = get_cnn_encoder()
 
-# In[8]:
+# extract train features
+train_img_embeds, train_img_fns = utils.apply_model(
+    "train2014.zip", encoder, preprocess_for_model, input_shape=(IMG_SIZE, IMG_SIZE))
+utils.save_pickle(train_img_embeds, "train_img_embeds.pickle")
+utils.save_pickle(train_img_fns, "train_img_fns.pickle")
+
+# extract validation features
+val_img_embeds, val_img_fns = utils.apply_model(
+    "val2014.zip", encoder, preprocess_for_model, input_shape=(IMG_SIZE, IMG_SIZE))
+utils.save_pickle(val_img_embeds, "val_img_embeds.pickle")
+utils.save_pickle(val_img_fns, "val_img_fns.pickle")
+
+# sample images for learners
+def sample_zip(fn_in, fn_out, rate=0.01, seed=42):
+    np.random.seed(seed)
+    with zipfile.ZipFile(fn_in) as fin, zipfile.ZipFile(fn_out, "w") as fout:
+        sampled = filter(lambda _: np.random.rand() < rate, fin.filelist)
+        for zInfo in sampled:
+            fout.writestr(zInfo, fin.read(zInfo))
+sample_zip("train2014.zip", "train2014_sample.zip")
+sample_zip("val2014.zip", "val2014_sample.zip")
+
 
 
 # load prepared embeddings
@@ -142,16 +82,9 @@ print(train_img_embeds.shape, len(train_img_fns))
 print(val_img_embeds.shape, len(val_img_fns))
 
 
-# In[9]:
-
 
 # check prepared samples of images
 list(filter(lambda x: x.endswith("_sample.zip"), os.listdir(".")))
-
-
-# # Extract captions for images
-
-# In[10]:
 
 
 # extract captions from zip
@@ -176,9 +109,6 @@ print(len(train_img_fns), len(train_captions))
 print(len(val_img_fns), len(val_captions))
 
 
-# In[11]:
-
-
 # look at training example (each has 5 captions)
 def show_trainig_example(train_img_fns, train_captions, example_idx=0):
     """
@@ -198,15 +128,7 @@ show_trainig_example(train_img_fns, train_captions, example_idx=142)
 
 
 # # Prepare captions for training
-
-# In[12]:
-
-
 # preview captions data
-train_captions[:2]
-
-
-# In[13]:
 
 
 from collections import Counter
@@ -272,16 +194,10 @@ def caption_tokens_to_indices(captions, vocab):
     return res
 
 
-# In[15]:
-
-
 # prepare vocabulary
 vocab = generate_vocabulary(train_captions)
 vocab_inverse = {idx: w for w, idx in vocab.items()}
 print(len(vocab))
-
-
-# In[16]:
 
 
 # replace tokens with indices
@@ -290,11 +206,8 @@ val_captions_indexed = caption_tokens_to_indices(val_captions, vocab)
 
 
 # Captions have different length, but we need to batch them, that's why we will add PAD tokens so that all sentences have an equal length. 
-# 
+ 
 # We will crunch LSTM through all the tokens, but we will ignore padding tokens during loss calculation.
-
-# In[20]:
-
 
 # we will use this during training
 def batch_captions_to_matrix(batch_captions, pad_idx, max_len=None):
@@ -324,36 +237,13 @@ def batch_captions_to_matrix(batch_captions, pad_idx, max_len=None):
     return np.array(matrix)
 
 
-# In[21]:
-
-
-## GRADED PART, DO NOT CHANGE!
-# Vocabulary creation
-grader.set_answer("19Wpv", grading_utils.test_vocab(vocab, PAD, UNK, START, END))
-# Captions indexing
-grader.set_answer("uJh73", grading_utils.test_captions_indexing(train_captions_indexed, vocab, UNK))
-# Captions batching
-grader.set_answer("yiJkt", grading_utils.test_captions_batching(batch_captions_to_matrix))
-
-
-# In[ ]:
-
-
-# you can make submission with answers so far to check yourself at this stage
-grader.submit(COURSERA_EMAIL, COURSERA_TOKEN)
-
-
-# In[ ]:
-
-
 # make sure you use correct argument in caption_tokens_to_indices
 assert len(caption_tokens_to_indices(train_captions[:10], vocab)) == 10
 assert len(caption_tokens_to_indices(train_captions[:5], vocab)) == 5
 
+ # Training
 
-# # Training
-
-# ## Define architecture
+# Define architecture
 
 # Since our problem is to generate image captions, RNN text generator should be conditioned on image. The idea is to use image features as an initial state for RNN instead of zeros. 
 # 
@@ -361,12 +251,6 @@ assert len(caption_tokens_to_indices(train_captions[:5], vocab)) == 5
 # 
 # During training we will feed ground truth tokens into the lstm to get predictions of next tokens. 
 # 
-# Notice that we don't need to feed last token (END) as input (http://cs.stanford.edu/people/karpathy/):
-# 
-# <img src="images/encoder_decoder_explained.png" style="width:50%">
-
-# In[22]:
-
 
 IMG_EMBED_SIZE = train_img_embeds.shape[1]
 IMG_EMBED_BOTTLENECK = 120
@@ -375,32 +259,11 @@ LSTM_UNITS = 300
 LOGIT_BOTTLENECK = 120
 pad_idx = vocab[PAD]
 
-
-# In[23]:
-
-
-# remember to reset your graph if you want to start building it from scratch!
 s = reset_tf_session()
 tf.set_random_seed(42)
 
 
 # Here we define decoder graph.
-# 
-# We use Keras layers where possible because we can use them in functional style with weights reuse like this:
-# ```python
-# dense_layer = L.Dense(42, input_shape=(None, 100) activation='relu')
-# a = tf.placeholder('float32', [None, 100])
-# b = tf.placeholder('float32', [None, 100])
-# dense_layer(a)  # that's how we applied dense layer!
-# dense_layer(b)  # and again
-# ```
-
-# Here's a figure to help you with flattening in decoder:
-# <img src="images/flatten_help.jpg" style="width:80%">
-
-# In[24]:
-
-
 class decoder:
     # [batch_size, IMG_EMBED_SIZE] of CNN image features
     img_embeds = tf.placeholder('float32', [None, IMG_EMBED_SIZE])
@@ -476,50 +339,21 @@ class decoder:
     loss = tf.reduce_mean(tf.boolean_mask(xent, flat_loss_mask)) ### YOUR CODE HERE ###
 
 
-# In[25]:
-
-
 # define optimizer operation to minimize the loss
 optimizer = tf.train.AdamOptimizer(learning_rate=0.001)
 train_step = optimizer.minimize(decoder.loss)
 
 # will be used to save/load network weights.
-# you need to reset your default graph and define it in the same way to be able to load the saved weights!
+# we need to reset your default graph and define it in the same way to be able to load the saved weights!
 saver = tf.train.Saver()
 
 # intialize all variables
 s.run(tf.global_variables_initializer())
 
-
-# In[26]:
-
-
-## GRADED PART, DO NOT CHANGE!
-# Decoder shapes test
-grader.set_answer("rbpnH", grading_utils.test_decoder_shapes(decoder, IMG_EMBED_SIZE, vocab, s))
-# Decoder random loss test
-grader.set_answer("E2OIL", grading_utils.test_random_decoder_loss(decoder, IMG_EMBED_SIZE, vocab, s))
-
-
-# In[ ]:
-
-
-# you can make submission with answers so far to check yourself at this stage
-grader.submit(COURSERA_EMAIL, COURSERA_TOKEN)
-
-
-# ## Training loop
 # Evaluate train and validation metrics through training and log them. Ensure that loss decreases.
-
-# In[27]:
-
 
 train_captions_indexed = np.array(train_captions_indexed)
 val_captions_indexed = np.array(val_captions_indexed)
-
-
-# In[28]:
-
 
 
 # generate batch via random sampling of images and captions for them,
@@ -546,34 +380,15 @@ def generate_batch(images_embeddings, indexed_captions, batch_size, max_len=None
     
     batch_image_embeddings = images_embeddings[batch]
     
-    batch_captions_matrix = batch_captions_to_matrix(batch_captions, pad_idx, max_len=max_len)
-    ### YOUR CODE HERE ###
-    
+    batch_captions_matrix = batch_captions_to_matrix(batch_captions, pad_idx, max_len=max_len)    
     return {decoder.img_embeds: batch_image_embeddings, 
             decoder.sentences: batch_captions_matrix}
-
-
-# In[29]:
 
 
 batch_size = 64
 n_epochs = 12
 n_batches_per_epoch = 1000
 n_validation_batches = 100  # how many batches are used for validation after each epoch
-
-
-# In[ ]:
-
-
-# you can load trained weights here
-# you can load "weights_{epoch}" and continue training
-# uncomment the next line if you need to load weights
-# saver.restore(s, os.path.abspath("weights"))
-
-
-# Look at the training and validation loss, they should be decreasing!
-
-# In[30]:
 
 
 # actual training loop
@@ -614,26 +429,6 @@ for epoch in range(n_epochs):
     
 print("Finished!")
 
-
-# In[ ]:
-
-
-## GRADED PART, DO NOT CHANGE!
-# Validation loss
-grader.set_answer("YJR7z", grading_utils.test_validation_loss(
-    decoder, s, generate_batch, val_img_embeds, val_captions_indexed))
-
-
-# In[ ]:
-
-
-# you can make submission with answers so far to check yourself at this stage
-grader.submit(COURSERA_EMAIL, COURSERA_TOKEN)
-
-
-# In[ ]:
-
-
 # check that it's learnt something, outputs accuracy of next word prediction (should be around 0.5)
 from sklearn.metrics import accuracy_score, log_loss
 
@@ -656,14 +451,10 @@ def check_after_training(n_examples):
 check_after_training(3)
 
 
-# In[ ]:
-
-
 # save graph weights to file!
 saver.save(s, os.path.abspath("weights"))
 
-
-# # Applying model
+# Applying model
 # 
 # Here we construct a graph for our final model.
 # 
@@ -673,8 +464,6 @@ saver.save(s, os.path.abspath("weights"))
 # - predict the next token given a START input token
 # - use predicted token as an input at next time step
 # - iterate until you predict an END token
-
-# In[ ]:
 
 
 class final_model:
@@ -714,18 +503,11 @@ class final_model:
     one_step = new_probs, tf.assign(lstm_c, new_c), tf.assign(lstm_h, new_h)
 
 
-# In[ ]:
-
-
 # look at how temperature works for probability distributions
 # for high temperature we have more uniform distribution
 _ = np.array([0.5, 0.4, 0.1])
 for t in [0.01, 0.1, 1, 10, 100]:
     print(" ".join(map(str, _**(1/t) / np.sum(_**(1/t)))), "with temperature", t)
-
-
-# In[ ]:
-
 
 # this is an actual prediction loop
 def generate_caption(image, t=1, sample=False, max_len=20):
@@ -763,8 +545,6 @@ def generate_caption(image, t=1, sample=False, max_len=20):
     return list(map(vocab_inverse.get, caption))
 
 
-# In[ ]:
-
 
 # look at validation prediction example
 def apply_model_to_image_raw_bytes(raw):
@@ -787,18 +567,13 @@ def show_valid_example(val_img_fns, example_idx=0):
 show_valid_example(val_img_fns, example_idx=100)
 
 
-# In[ ]:
-
-
 # sample more images from validation
 for idx in np.random.choice(range(len(zipfile.ZipFile("val2014_sample.zip").filelist) - 1), 10):
     show_valid_example(val_img_fns, example_idx=idx)
     time.sleep(1)
 
 
-# You can download any image from the Internet and appply your model to it!
-
-# In[ ]:
+# we can download any image from the Internet and appply your model to it!
 
 
 download_utils.download_file(
@@ -807,35 +582,4 @@ download_utils.download_file(
 )
 
 
-# In[ ]:
-
-
 apply_model_to_image_raw_bytes(open("portal-cake-10.jpg", "rb").read())
-
-
-# Now it's time to find 10 examples where your model works good and 10 examples where it fails! 
-# 
-# You can use images from validation set as follows:
-# ```python
-# show_valid_example(val_img_fns, example_idx=...)
-# ```
-# 
-# You can use images from the Internet as follows:
-# ```python
-# ! wget ...
-# apply_model_to_image_raw_bytes(open("...", "rb").read())
-# ```
-# 
-# If you use these functions, the output will be embedded into your notebook and will be visible during peer review!
-# 
-# When you're done, download your noteboook using "File" -> "Download as" -> "Notebook" and prepare that file for peer review!
-
-# In[ ]:
-
-
-### YOUR EXAMPLES HERE ###
-
-
-# That's it! 
-# 
-# Congratulations, you've trained your image captioning model and now can produce captions for any picture from the  Internet!
